@@ -1,0 +1,6 @@
+{
+  "name": "AI Studio Assistant",
+  "description": "An AI assistant powered by Gemini that answers questions and writes code to help build applications.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
