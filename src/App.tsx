@@ -134,9 +134,28 @@ export default function App() {
       }
     } catch (error) {
       console.error('Chat error:', error);
+      let errorMessage = error instanceof Error ? error.message : 'Could not reach the assistant.';
+      try {
+        if (errorMessage.includes('error') && errorMessage.includes('message')) {
+          const parsed = JSON.parse(errorMessage);
+          if (parsed.error && parsed.error.message) {
+             errorMessage = parsed.error.message; // Use outer message first
+             try {
+               const innerParsed = JSON.parse(errorMessage);
+               if (innerParsed.error && innerParsed.error.message) {
+                   errorMessage = innerParsed.error.message; // Use inner message if present
+               }
+             } catch (innerErr) {
+               // Inner message wasn't JSON, that's fine
+             }
+          }
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
       setMessages((prev) => [
         ...prev,
-        { role: 'model', content: `*Error: ${error instanceof Error ? error.message : 'Could not reach the assistant.'}*` },
+        { role: 'model', content: `*Error: ${errorMessage}*` },
       ]);
     } finally {
       setIsLoading(false);
