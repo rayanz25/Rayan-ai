@@ -7,7 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Send, User, Bot, Loader2, Mail } from 'lucide-react';
 import { cn } from './utils';
-import { initAuth, googleSignIn, logout, getAccessToken } from './firebase';
+import { initAuth, googleSignIn, logout, getAccessToken, saveMessageToFirestore, loadMessagesFromFirestore } from './firebase';
 import { GmailInbox } from './components/GmailInbox';
 import type { User as FirebaseUser } from 'firebase/auth';
 
@@ -43,6 +43,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (authUser) {
+      loadMessagesFromFirestore(authUser.uid).then(msgs => {
+        setMessages(msgs);
+      });
+    } else {
+      setMessages([]);
+    }
+  }, [authUser]);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
 
@@ -55,6 +65,10 @@ export default function App() {
     setMessages(newMessages);
     setInput('');
     setIsLoading(true);
+
+    if (authUser) {
+      saveMessageToFirestore(authUser.uid, userMessage).catch(console.error);
+    }
 
     try {
       const response = await fetch('/api/chat', {
@@ -113,6 +127,10 @@ export default function App() {
             }
           }
         }
+      }
+      
+      if (authUser && assistantMessage) {
+        saveMessageToFirestore(authUser.uid, { role: 'model', content: assistantMessage }).catch(console.error);
       }
     } catch (error) {
       console.error('Chat error:', error);

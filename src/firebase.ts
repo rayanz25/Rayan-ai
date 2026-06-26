@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, orderBy, getDocs, Timestamp, onSnapshot } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -63,4 +63,34 @@ export const getAccessToken = async (): Promise<string | null> => {
 export const logout = async () => {
   await auth.signOut();
   cachedAccessToken = null;
+};
+
+export const saveMessageToFirestore = async (userId: string, message: { role: 'user' | 'model', content: string }) => {
+  try {
+    const messagesRef = collection(db, 'users', userId, 'messages');
+    await addDoc(messagesRef, {
+      ...message,
+      timestamp: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error saving message to Firestore', error);
+  }
+};
+
+export const loadMessagesFromFirestore = async (userId: string): Promise<{role: 'user'|'model', content: string}[]> => {
+  try {
+    const messagesRef = collection(db, 'users', userId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        role: data.role as 'user' | 'model',
+        content: data.content
+      };
+    });
+  } catch (error) {
+    console.error('Error loading messages from Firestore', error);
+    return [];
+  }
 };
